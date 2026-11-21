@@ -10,20 +10,24 @@ import (
 )
 
 func TestVillageRunKeepsAgentsInSpecialties(t *testing.T) {
-	var received []ollamaRequest
+	var received []chatRequest
+	var authorization string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var request ollamaRequest
+		authorization = r.Header.Get("Authorization")
+		var request chatRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
 		received = append(received, request)
-		_ = json.NewEncoder(w).Encode(ollamaResponse{
-			Message: OllamaMessage{Role: "assistant", Content: "specialized result"},
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []any{map[string]any{
+				"message": map[string]any{"role": "assistant", "content": "specialized result"},
+			}},
 		})
 	}))
 	defer server.Close()
 
-	village := NewVillage("test-model", server.URL)
+	village := NewVillage("test-model", server.URL, "test-api-key")
 	results, err := village.Run(context.Background(), "create a project")
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -33,6 +37,9 @@ func TestVillageRunKeepsAgentsInSpecialties(t *testing.T) {
 	}
 	if len(received) != len(Agents) {
 		t.Fatalf("got %d requests, want %d", len(received), len(Agents))
+	}
+	if authorization != "Bearer "+"test-api-key" {
+		t.Fatalf("Authorization header = %q", authorization)
 	}
 	for i, request := range received {
 		if len(request.Messages) != 2 {
@@ -45,7 +52,7 @@ func TestVillageRunKeepsAgentsInSpecialties(t *testing.T) {
 }
 
 func TestVillageRunRejectsEmptyGoal(t *testing.T) {
-	village := NewVillage("test-model", "http://127.0.0.1")
+	village := NewVillage("test-model", "http://127.0.0.1", "test-api-key")
 	if _, err := village.Run(context.Background(), "  "); err == nil {
 		t.Fatal("Run accepted an empty goal")
 	}

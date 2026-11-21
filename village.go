@@ -16,20 +16,26 @@ type Agent struct {
 	Prompt    string
 }
 
-type OllamaMessage struct {
+type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-type ollamaRequest struct {
-	Model    string          `json:"model"`
-	Messages []OllamaMessage `json:"messages"`
-	Stream   bool            `json:"stream"`
+type chatRequest struct {
+	Model       string        `json:"model"`
+	Messages    []ChatMessage `json:"messages"`
+	Stream      bool          `json:"stream"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
+	Temperature float64       `json:"temperature,omitempty"`
 }
 
-type ollamaResponse struct {
-	Message OllamaMessage `json:"message"`
-	Error   string        `json:"error"`
+type chatResponse struct {
+	Choices []struct {
+		Message ChatMessage `json:"message"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
 var Agents = []Agent{
@@ -42,6 +48,7 @@ var Agents = []Agent{
 type Village struct {
 	Model    string
 	Endpoint string
+	APIKey   string
 	Client   *http.Client
 }
 
@@ -64,13 +71,15 @@ func (v Village) Run(ctx context.Context, goal string) ([]string, error) {
 
 func (v Village) ask(ctx context.Context, agent Agent, goal string) (string, error) {
 	system := agent.Prompt + " Stay within your specialty and return concise output."
-	body := ollamaRequest{
+	body := chatRequest{
 		Model: v.Model,
-		Messages: []OllamaMessage{
+		Messages: []ChatMessage{
 			{Role: "system", Content: system},
 			{Role: "user", Content: goal},
 		},
-		Stream: false,
+		Stream:      false,
+		MaxTokens:   1024,
+		Temperature: 0.2,
 	}
 
 	payload, err := json.Marshal(body)
@@ -82,6 +91,8 @@ func (v Village) ask(ctx context.Context, agent Agent, goal string) (string, err
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+v.APIKey)
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := v.Client.Do(req)
 	if err != nil {
@@ -89,32 +100,33 @@ func (v Village) ask(ctx context.Context, agent Agent, goal string) (string, err
 	}
 	defer resp.Body.Close()
 
-	var result ollamaResponse
+	var result chatResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if result.Error != "" {
-			return "", fmt.Errorf("AI service returned %s: %s", resp.Status, result.Error)
+		if result.Error != nil && result.Error.Message != "" {
+			return "", fmt.Errorf("NVIDIA NIM returned %s: %s", resp.Status, result.Error.Message)
 		}
-		return "", fmt.Errorf("AI service returned %s", resp.Status)
+		return "", fmt.Errorf("NVIDIA NIM returned %s", resp.Status)
 	}
-	if strings.TrimSpace(result.Message.Content) == "" {
-		return "", fmt.Errorf("AI service returned an empty response")
+	if len(result.Choices) == 0 || strings.TrimSpace(result.Choices[0].Message.Content) == "" {
+		return "", fmt.Errorf("NVIDIA NIM returned an empty response")
 	}
-	return strings.TrimSpace(result.Message.Content), nil
+	return strings.TrimSpace(result.Choices[0].Message.Content), nil
 }
 
-func NewVillage(model, endpoint string) Village {
+func NewVillage(model, endpoint, apiKey string) Village {
 	if strings.TrimSpace(model) == "" {
-		model = "qwen2.5:1.5b"
+		model = "meta/llama-3.1-70b-instruct"
 	}
 	if strings.TrimSpace(endpoint) == "" {
-		endpoint = "http://127.0.0.1:11434/api/chat"
+		endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
 	}
 	return Village{
 		Model:    model,
 		Endpoint: endpoint,
+		APIKey:   strings.TrimSpace(apiKey),
 		Client:   &http.Client{Timeout: 30 * time.Second},
 	}
 }
