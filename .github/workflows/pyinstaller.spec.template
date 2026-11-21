@@ -1,0 +1,81 @@
+# PyInstaller spec file template for AI-Village
+# Copy this to your project root as `AI-Village.spec` and customize
+# Then reference it in the workflow: pyinstaller AI-Village.spec
+
+block_cipher = None
+
+# Add your data files here (source, destination)
+added_files = [
+    ('assets', 'assets'),
+    ('resources', 'resources'),
+    ('config', 'config'),
+    # Add more as needed: ('src/data', 'data'),
+]
+
+# Hidden imports that PyInstaller might miss
+hiddenimports = [
+    'pkg_resources.py2_warn',
+    # Add project-specific hidden imports here
+]
+
+# Exclude unnecessary modules to reduce size
+excludes = [
+    'tkinter',
+    'matplotlib',
+    'numpy',
+    'pandas',
+    'scipy',
+    'PIL',
+    'cv2',
+    'torch',
+    'tensorflow',
+    'jupyter',
+    'notebook',
+    'IPython',
+    'pytest',
+    'unittest',
+    'doctest',
+    'pdb',
+    'pydoc',
+]
+
+a = Analysis(
+    ['main.py'],  # CHANGE: Your entry point
+    pathex=[],
+    binaries=[],
+    datas=added_files,
+    hiddenimports=hiddenimports,
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=excludes,
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name='AI-Village',  # CHANGE: Your exe name
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=True,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,  # True for CLI apps, False for GUI apps
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon='assets/icon.ico',  # CHANGE: Path to your .ico file
+)
