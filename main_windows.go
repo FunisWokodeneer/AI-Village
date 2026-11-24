@@ -24,6 +24,7 @@ func main() {
 	}()
 
 	if _, err := (MainWindow{
+		AssignTo: &mainWindow,
 		Title:   "AI Village",
 		MinSize: Size{Width: 720, Height: 680},
 		Size:    Size{Width: 900, Height: 780},
