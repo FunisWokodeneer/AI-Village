@@ -1,299 +1,66 @@
-name: Build Windows Executable
+name: Build Windows App
 
 on:
+  workflow_dispatch:
   push:
-    tags:
-      - 'v*'  # Trigger on version tags like v1.0.0
-  workflow_dispatch:  # Allow manual trigger
-  release:
-    types: [published]  # Trigger when a release is published
+    branches: [main, feature/windows-gui]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
 
 permissions:
-  contents: write  # Needed to create releases and upload assets
-
-env:
-  # Customize these for your project
-  PROJECT_NAME: "AI-Village"
-  # For Python: entry point script (e.g., main.py, cli.py)
-  PYTHON_ENTRY_POINT: "main.py"
-  # For Node.js: package.json name
-  NODE_PACKAGE_NAME: "ai-village"
-  # For Rust: binary name in Cargo.toml
-  RUST_BINARY_NAME: "ai-village"
-  # For Go: main package path
-  GO_MAIN_PATH: "./cmd/main.go"
+  contents: write
 
 jobs:
-  # Detect project type and build accordingly
-  detect-and-build:
-    name: Detect Project Type & Build
+  build:
+    name: Build native Windows GUI
     runs-on: windows-latest
     timeout-minutes: 30
-    outputs:
-      artifact-path: ${{ steps.set-artifact-path.outputs.path }}
-      artifact-name: ${{ steps.set-artifact-name.outputs.name }}
     steps:
-      - name: Checkout repository
+      - name: Check out source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Needed for version detection
 
-      - name: Detect project type
-        id: detect
-        run: |
-          echo "Detecting project type..."
-          if (Test-Path "pyproject.toml") -or (Test-Path "setup.py") -or (Test-Path "requirements.txt") -or (Test-Path "Pipfile") -or (Test-Path "poetry.lock") {
-            echo "type=python" >> $env:GITHUB_OUTPUT
-            echo "Python project detected"
-          } elseif (Test-Path "package.json") {
-            echo "type=node" >> $env:GITHUB_OUTPUT
-            echo "Node.js project detected"
-          } elseif (Test-Path "Cargo.toml") {
-            echo "type=rust" >> $env:GITHUB_OUTPUT
-            echo "Rust project detected"
-          } elseif (Test-Path "go.mod") {
-            echo "type=go" >> $env:GITHUB_OUTPUT
-            echo "Go project detected"
-          } else {
-            echo "type=unknown" >> $env:GITHUB_OUTPUT
-            echo "Unknown project type - defaulting to Python"
-            echo "type=python" >> $env:GITHUB_OUTPUT
-          }
-
-      # ========== PYTHON BUILD ==========
-      - name: Set up Python
-        if: steps.detect.outputs.type == 'python'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install Python dependencies
-        if: steps.detect.outputs.type == 'python'
-        run: |
-          python -m pip install --upgrade pip
-          if (Test-Path "requirements.txt") { pip install -r requirements.txt }
-          if (Test-Path "pyproject.toml") { pip install -e . }
-          pip install pyinstaller
-
-      - name: Build Windows EXE with PyInstaller (Python)
-        if: steps.detect.outputs.type == 'python'
-        run: |
-          $entryPoint = "${env:PYTHON_ENTRY_POINT}"
-          if (-not (Test-Path $entryPoint)) {
-            # Try common entry points
-            $candidates = @("main.py", "cli.py", "app.py", "run.py", "src/main.py", "src/cli.py")
-            foreach ($c in $candidates) {
-              if (Test-Path $c) { $entryPoint = $c; break }
-            }
-          }
-          Write-Host "Using entry point: $entryPoint"
-          
-          pyinstaller --onefile --windowed --name "${env:PROJECT_NAME}" `
-            --add-data "assets;assets" `
-            --add-data "resources;resources" `
-            --add-data "config;config" `
-            --hidden-import=pkg_resources.py2_warn `
-            $entryPoint
-
-      # ========== NODE.JS/ELECTRON BUILD ==========
-      - name: Set up Node.js
-        if: steps.detect.outputs.type == 'node'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Node.js dependencies
-        if: steps.detect.outputs.type == 'node'
-        run: |
-          if (Test-Path "package-lock.json") { npm ci }
-          elseif (Test-Path "yarn.lock") { yarn install --frozen-lockfile }
-          elseif (Test-Path "pnpm-lock.yaml") { pnpm install --frozen-lockfile }
-          else { npm install }
-
-      - name: Build Windows EXE with electron-builder (Node.js)
-        if: steps.detect.outputs.type == 'node'
-        run: |
-          # Check if electron-builder is configured
-          $pkg = Get-Content package.json | ConvertFrom-Json
-          if ($pkg.build -or $pkg.buildConfig) {
-            npx electron-builder --win --x64 --config.compression=maximum
-          } else {
-            Write-Error "electron-builder not configured in package.json"
-            exit 1
-          }
-
-      # ========== RUST/TAURI BUILD ==========
-      - name: Set up Rust
-        if: steps.detect.outputs.type == 'rust'
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-
-      - name: Cache Rust dependencies
-        if: steps.detect.outputs.type == 'rust'
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build Windows EXE (Rust)
-        if: steps.detect.outputs.type == 'rust'
-        run: |
-          cargo build --release --bin "${env:RUST_BINARY_NAME}"
-          # Copy to standard location for artifact upload
-          New-Item -ItemType Directory -Force -Path "dist"
-          Copy-Item "target/release/${env:RUST_BINARY_NAME}.exe" "dist/${env:PROJECT_NAME}.exe"
-
-      # ========== GO BUILD ==========
       - name: Set up Go
-        if: steps.detect.outputs.type == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: go.mod
+          cache: true
 
-      - name: Build Windows EXE (Go)
-        if: steps.detect.outputs.type == 'go'
+      - name: Resolve dependencies
+        run: go mod tidy
+
+      - name: Test
+        run: go test ./...
+
+      - name: Install manifest resource compiler
         run: |
-          $ldflags = "-s -w -X main.version=${{ github.ref_name }}"
-          go build -ldflags $ldflags -o "dist/${env:PROJECT_NAME}.exe" "${env:GO_MAIN_PATH}"
+          go install github.com/akavel/rsrc@latest
+          $env:PATH = "$(go env GOPATH)\bin;$env:PATH"
+          rsrc -manifest app.manifest -o rsrc_windows_amd64.syso
 
-      # ========== SET ARTIFACT PATH ==========
-      - name: Determine artifact path and name
-        id: set-artifact-path
+      - name: Build GUI executable
         run: |
-          $exeName = "${env:PROJECT_NAME}.exe"
-          $paths = @(
-            "dist/$exeName",
-            "dist/${env:PROJECT_NAME}-*.exe",
-            "target/release/${env:RUST_BINARY_NAME}.exe",
-            "dist/${env:NODE_PACKAGE_NAME}*.exe",
-            "release/build/*.exe"
-          )
-          
-          $found = $null
-          foreach ($p in $paths) {
-            $matches = Get-ChildItem -Path $p -ErrorAction SilentlyContinue
-            if ($matches) { $found = $matches[0].FullName; break }
-          }
-          
-          if (-not $found) {
-            # Search recursively
-            $found = (Get-ChildItem -Recurse -Filter "*.exe" | Where-Object { $_.Name -notmatch "test|benchmark" } | Select-Object -First 1).FullName
-          }
-          
-          if (-not $found) {
-            Write-Error "No .exe file found after build"
-            exit 1
-          }
-          
-          Write-Host "Found executable: $found"
-          echo "path=$found" >> $env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          go build -trimpath -ldflags="-s -w -H=windowsgui -linkmode=internal" -o dist/AI-Village-windows-x64.exe .
 
-      - name: Set artifact name
-        id: set-artifact-name
+      - name: Verify executable exists
         run: |
-          $version = "${{ github.ref_name }}"
-          if (-not $version -or $version -eq "main" -or $version -eq "master") {
-            $version = "dev-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          if (-not (Test-Path "dist/AI-Village-windows-x64.exe")) {
+            throw "The Windows executable was not created."
           }
-          $name = "${env:PROJECT_NAME}-${version}-windows-x64.exe"
-          echo "name=$name" >> $env:GITHUB_OUTPUT
+          Get-Item "dist/AI-Village-windows-x64.exe" | Format-List Name,Length
 
-      - name: Upload executable as artifact
+      - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.set-artifact-name.outputs.name }}
-          path: ${{ steps.set-artifact-path.outputs.path }}
+          name: AI-Village-windows-x64
+          path: dist/AI-Village-windows-x64.exe
+          if-no-files-found: error
           retention-days: 30
 
-  # Create GitHub Release with the executable
-  release:
-    name: Create Release
-    needs: detect-and-build
-    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.detect-and-build.outputs.artifact-name }}
-          path: dist/
-
-      - name: Verify executable
-        run: |
-          ls -la dist/
-          file dist/*.exe
-
-      - name: Create/Update Release
+      - name: Publish executable to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
         with:
-          files: dist/*.exe
+          files: dist/AI-Village-windows-x64.exe
           generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-
-      - name: Create Release (workflow_dispatch)
-        uses: softprops/action-gh-release@v2
-        if: github.event_name == 'workflow_dispatch'
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          files: dist/*.exe
-          generate_release_notes: true
-          draft: true  # Create as draft when manually triggered
-
-  # Optional: Test the executable on Windows
-  test:
-    name: Test Executable
-    needs: detect-and-build
-    runs-on: windows-latest
-    timeout-minutes: 10
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.detect-and-build.outputs.artifact-name }}
-          path: dist/
-
-      - name: Test executable runs
-        run: |
-          $exe = Get-ChildItem dist/*.exe | Select-Object -First 1
-          Write-Host "Testing: $($exe.FullName)"
-          
-          # Test that it starts and exits (with --version or --help)
-          $testArgs = @("--version", "--help", "-v", "-h", "/version", "/help", "version", "help")
-          $success = $false
-          
-          foreach ($arg in $testArgs) {
-            try {
-              $result = & $exe.FullName $arg
-              if ($LASTEXITCODE -eq 0 -or $result) {
-                Write-Host "Test passed with argument: $arg"
-                Write-Host "Output: $result"
-                $success = $true
-                break
-              }
-            } catch {
-              # Continue to next argument
-            }
-          }
-          
-          if (-not $success) {
-            # Try running without args (may show help or start GUI)
-            try {
-              $proc = Start-Process -FilePath $exe.FullName -WindowStyle Hidden -PassThru
-              Start-Sleep -Seconds 3
-              if (-not $proc.HasExited) {
-                Stop-Process -Id $proc.Id -Force
-                Write-Host "Executable started successfully (GUI mode)"
-                $success = $true
-              }
-            } catch {
-              Write-Warning "Could not test executable automatically"
-            }
-          }
-          
-          if (-not $success) {
-            Write-Warning "Automated test inconclusive - manual verification recommended"
-          }
