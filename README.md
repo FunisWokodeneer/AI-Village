@@ -1,49 +1,59 @@
-# AI Village
+# AGS AI Village
 
-AI Village is a small desktop app that runs four focused AI agents in sequence:
-Researcher, Planner, Builder, and Reviewer. The Windows version has a native
-Windows interface and does not open a terminal window.
+**A living, explorable headquarters for an AI workforce.**
 
-## Windows app
+AGS AI Village is a desktop-first simulation where AI agents have visible identities, roles, workspaces, and activities. The village is the primary interface: dashboards and inspection panels support the world rather than replace it.
 
-1. Download `AI-Village-windows-x64.exe` from the latest successful
-   **Build Windows App** GitHub Actions run (or from a GitHub Release).
-2. Double-click the executable.
-3. Paste your NVIDIA API key into the password field.
-4. Enter a project goal and click **Run AI Village**.
-5. Follow each agent's progress and read the results in the app window.
+This project takes inspiration from the broader idea of a virtual AI organization, while developing its own AGS identity, world, architecture, and interaction model.
 
-Create an API key through the NVIDIA API Catalog before using the app. AI
-requests are sent to NVIDIA NIM, so an internet connection is required.
-The API key is used only in memory for that run and is not saved by the app.
-You will need to enter it again the next time you launch AI Village.
+## Current prototype
 
-The model and endpoint can be changed in the app. Defaults are
-`meta/llama-3.1-70b-instruct` and
-`https://integrate.api.nvidia.com/v1/chat/completions`.
+The first world-engine foundation includes:
 
-## Agent specialties
+- A native desktop game window with a hand-built village map.
+- Five named residents with distinct roles, personalities, colors, and workplaces.
+- Animated movement, ambient activities, a day clock, pause, and click-to-inspect profiles.
+- Optional model-driven activity decisions through an OpenAI-compatible chat-completions endpoint.
+- Demo behavior when no API key is configured, so the village can be explored without credentials.
 
-- **Researcher:** facts, requirements, constraints, and risks
-- **Planner:** ordered, achievable steps
-- **Builder:** implementation details and code
-- **Reviewer:** correctness, risks, and missing checks
+The current AI decision loop is intentionally small: residents periodically request one activity and destination. It is a foundation, not a claim that full delegation, persistent memory, or autonomous project execution is already implemented.
 
-Each agent receives a focused system prompt that keeps it within its specialty.
-Each agent has a 30-second HTTP timeout.
+## Run
 
-## Build from source
-
-The Windows desktop app is built with Go and the Walk Windows GUI toolkit.
-A Windows build requires Go 1.21 or newer and embeds the application manifest
-so the executable is self-contained.
+Install Go 1.23 or newer, then:
 
 ```powershell
 go mod tidy
-go install github.com/akavel/rsrc@latest
-rsrc -manifest app.manifest -o rsrc_windows_amd64.syso
-go build -trimpath -ldflags="-s -w -H=windowsgui -linkmode=internal" -o AI-Village.exe .
+$env:AI_VILLAGE_API_KEY = "your-api-key"
+$env:AI_VILLAGE_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
+$env:AI_VILLAGE_MODEL = "meta/llama-3.1-70b-instruct"
+go run .
 ```
 
-On non-Windows systems, `go run . -goal "Your goal"` remains available as a
-command-line version for development. The Windows executable is the GUI app.
+The API key is read from the process environment and is not written to disk. If no key is present, the village runs in demo mode.
+
+Compatible providers can be used by setting the endpoint, model, and key environment variables. Local OpenAI-compatible servers are supported when reachable from the machine.
+
+## Controls
+
+- Click a resident to inspect their role, personality, home, and current activity.
+- Press **Space** to pause or resume the simulation.
+- Press **Esc** to close the resident profile.
+
+## Architecture direction
+
+The codebase is being developed around three independent systems:
+
+1. **World engine** — rendering, simulation time, movement, navigation, buildings, interaction, and persistence.
+2. **Agent engine** — model adapters, identity, reasoning, memory, communication, and delegation.
+3. **Work engine** — tools, projects, files, integrations, and task execution.
+
+The long-term design is provider-neutral and extensible. Agent capabilities must be real and observable; visual activity should never be presented as proof that an agent completed work.
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned milestones and current implementation status.
+
+## Public project
+
+AI Village is an independent AGS Studio project. The reference material is inspiration for the general concept, not a source-code or visual-design template.
