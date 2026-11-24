@@ -3,7 +3,7 @@ name: Feature request
 about: Suggest an idea for AI Village
 title: "[FEATURE]"
 labels: enhancement
-assignees: FunisWokodeneer
+assignees: 
 type: Feature
 
 ---
