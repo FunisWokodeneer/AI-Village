@@ -27,18 +27,18 @@ type Point struct {
 
 type Resident struct {
 	Name, Role, Home, Workplace string
-	Personality, CurrentAction string
-	Position, Target Point
-	Color color.RGBA
-	Speed float64
-	Thinking bool
-	LastThought time.Time
+	Personality, CurrentAction  string
+	Position, Target            Point
+	Color                       color.RGBA
+	Speed                       float64
+	Thinking                    bool
+	LastThought                 time.Time
 }
 
 type Building struct {
 	Name, Kind string
 	X, Y, W, H float32
-	Fill color.RGBA
+	Fill       color.RGBA
 }
 
 type VillageGame struct {
