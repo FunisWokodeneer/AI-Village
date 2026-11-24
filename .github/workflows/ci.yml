@@ -19,11 +19,11 @@ jobs:
       - name: Install Ebitengine Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev libxi-dev libgl1-mesa-dev libasound2-dev
+          sudo apt-get install -y pkg-config libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev libxi-dev libxxf86vm-dev libgl1-mesa-dev libasound2-dev
       - name: Resolve and verify dependencies
         run: go mod tidy
-      - name: Show formatting diff
-        run: gofmt -d world.go brain.go
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
       - name: Test
         run: go test ./...
       - name: Vet
