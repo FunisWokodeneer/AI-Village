@@ -131,7 +131,7 @@ func (g *VillageGame) Update() error {
 decisionsDrained:
 	if !g.paused {
 		g.clock += dt * 12
-		for _, a := range g.residents {
+		for i, a := range g.residents {
 			dx, dy := a.Target.X-a.Position.X, a.Target.Y-a.Position.Y
 			dist := math.Hypot(dx, dy)
 			if dist > 1 {
