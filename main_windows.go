@@ -19,7 +19,7 @@ const (
 func main() {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			walk.MsgBox(nil, "AI Village could not start", fmt.Sprint(recovered), walk.MsgBoxIconError)
+			walk.MsgBox(nil, "AI Village could not start", fmt.Sprint(recovered), walk.MsgBoxOK|walk.MsgBoxIconError)
 		}
 	}()
 
@@ -48,7 +48,7 @@ func main() {
 			ProgressBar{AssignTo: &progressBar, MinValue: 0, MaxValue: 4, Value: 0},
 			Label{AssignTo: &statusLabel, Text: "Ready. Enter your API key and project goal."},
 			Label{Text: "Agent results:"},
-			TextEdit{AssignTo: &outputEdit, ReadOnly: true, MinSize: Size{Width: 500, Height: 240}},
+			TextEdit{AssignTo: &outputEdit, ReadOnly: true, VScroll: true, MinSize: Size{Width: 500, Height: 240}},
 		},
 	}.Run()); err != nil {
 		walk.MsgBox(nil, "AI Village could not start", err.Error(), walk.MsgBoxIconError)
@@ -74,7 +74,7 @@ func runVillage() {
 	endpoint := strings.TrimSpace(endpointEdit.Text())
 
 	if goal == "" {
-		walk.MsgBox(mainWindow, "Project goal required", "Please enter a goal for AI Village.", walk.MsgBoxIconWarning)
+		walk.MsgBox(mainWindow, "Project goal required", "Please enter a goal for AI Village.", walk.MsgBoxOK|walk.MsgBoxIconWarning)
 		return
 	}
 	if apiKey == "" {
