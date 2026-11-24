@@ -51,7 +51,7 @@ func main() {
 			TextEdit{AssignTo: &outputEdit, ReadOnly: true, VScroll: true, MinSize: Size{Width: 500, Height: 240}},
 		},
 	}.Run()); err != nil {
-		walk.MsgBox(nil, "AI Village could not start", err.Error(), walk.MsgBoxIconError)
+		walk.MsgBox(nil, "AI Village could not start", err.Error(), walk.MsgBoxOK|walk.MsgBoxIconError)
 	}
 }
 
@@ -78,7 +78,7 @@ func runVillage() {
 		return
 	}
 	if apiKey == "" {
-		walk.MsgBox(mainWindow, "API key required", "Enter your NVIDIA API key to run the agents.", walk.MsgBoxIconWarning)
+		walk.MsgBox(mainWindow, "API key required", "Enter your NVIDIA API key to run the agents.", walk.MsgBoxOK|walk.MsgBoxIconWarning)
 		return
 	}
 
