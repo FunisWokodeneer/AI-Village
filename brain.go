@@ -29,7 +29,7 @@ func (g *VillageGame) requestDecision(index int, a Resident) {
 	decision := AgentDecision{ResidentIndex: index}
 	defer func() {
 		g.decisionResults <- decision
-	}
+	}()
 
 	key := os.Getenv("AI_VILLAGE_API_KEY")
 	if key == "" {
