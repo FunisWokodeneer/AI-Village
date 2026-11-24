@@ -35,7 +35,6 @@ jobs:
       - name: Install manifest resource compiler
         run: |
           go install github.com/akavel/rsrc@latest
-          "$env:GOPATH\bin" | Out-Null
           $env:PATH = "$(go env GOPATH)\bin;$env:PATH"
           rsrc -manifest app.manifest -o rsrc_windows_amd64.syso
 
