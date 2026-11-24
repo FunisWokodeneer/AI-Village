@@ -25,10 +25,10 @@ func main() {
 
 	if _, err := (MainWindow{
 		AssignTo: &mainWindow,
-		Title:   "AI Village",
-		MinSize: Size{Width: 720, Height: 680},
-		Size:    Size{Width: 900, Height: 780},
-		Layout:  VBox{Margins: Margins{Left: 16, Top: 16, Right: 16, Bottom: 16}, Spacing: 8},
+		Title:    "AI Village",
+		MinSize:  Size{Width: 720, Height: 680},
+		Size:     Size{Width: 900, Height: 780},
+		Layout:   VBox{Margins: Margins{Left: 16, Top: 16, Right: 16, Bottom: 16}, Spacing: 8},
 		Children: []Widget{
 			Label{Text: "AI Village", Font: Font{PointSize: 18, Bold: true}},
 			Label{Text: "Give your four AI agents a goal. They will research, plan, build, and review it in sequence."},
@@ -41,8 +41,8 @@ func main() {
 			Label{Text: "API endpoint:"},
 			LineEdit{AssignTo: &endpointEdit, Text: defaultEndpoint},
 			PushButton{
-				AssignTo: &runButton,
-				Text:     "Run AI Village",
+				AssignTo:  &runButton,
+				Text:      "Run AI Village",
 				OnClicked: runVillage,
 			},
 			ProgressBar{AssignTo: &progressBar, MinValue: 0, MaxValue: 4, Value: 0},
@@ -56,15 +56,15 @@ func main() {
 }
 
 var (
-	apiKeyEdit  *walk.LineEdit
-	goalEdit    *walk.TextEdit
-	modelEdit   *walk.LineEdit
+	apiKeyEdit   *walk.LineEdit
+	goalEdit     *walk.TextEdit
+	modelEdit    *walk.LineEdit
 	endpointEdit *walk.LineEdit
-	runButton   *walk.PushButton
-	progressBar *walk.ProgressBar
-	statusLabel *walk.Label
-	outputEdit  *walk.TextEdit
-	mainWindow  *walk.MainWindow
+	runButton    *walk.PushButton
+	progressBar  *walk.ProgressBar
+	statusLabel  *walk.Label
+	outputEdit   *walk.TextEdit
+	mainWindow   *walk.MainWindow
 )
 
 func runVillage() {
