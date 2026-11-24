@@ -35,6 +35,12 @@ type Resident struct {
 	LastThought                 time.Time
 }
 
+type AgentDecision struct {
+	ResidentIndex int
+	Activity      string
+	Destination   string
+}
+
 type Building struct {
 	Name, Kind string
 	X, Y, W, H float32
@@ -51,7 +57,8 @@ type VillageGame struct {
 	face        *text.GoTextFace
 	notice      string
 	noticeUntil time.Time
-	rng         *rand.Rand
+	rng             *rand.Rand
+	decisionResults chan AgentDecision
 }
 
 func NewVillageGame() *VillageGame {
@@ -59,7 +66,8 @@ func NewVillageGame() *VillageGame {
 	g := &VillageGame{
 		selected: -1,
 		lastTick: time.Now(),
-		rng:      rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		decisionResults: make(chan AgentDecision, 16),
 		buildings: []Building{
 			{"AGS Commons", "HQ", 425, 260, 250, 145, color.RGBA{67, 91, 119, 255}},
 			{"Research House", "RESEARCH", 95, 115, 190, 120, color.RGBA{89, 126, 151, 255}},
@@ -102,6 +110,25 @@ func (g *VillageGame) Update() error {
 		g.selected = -1
 	}
 
+	for {
+		select {
+		case decision := <-g.decisionResults:
+			if decision.ResidentIndex >= 0 && decision.ResidentIndex < len(g.residents) {
+				a := g.residents[decision.ResidentIndex]
+				a.Thinking = false
+				if decision.Activity != "" {
+					a.CurrentAction = decision.Activity
+				}
+				if target, ok := destinationPoint(decision.Destination); ok {
+					a.Target = target
+				}
+			}
+		default:
+			goto decisionsDrained
+		}
+	}
+
+decisionsDrained:
 	if !g.paused {
 		g.clock += dt * 12
 		for _, a := range g.residents {
@@ -119,7 +146,8 @@ func (g *VillageGame) Update() error {
 			}
 			if time.Since(a.LastThought) > 35*time.Second && !a.Thinking {
 				a.LastThought = now
-				go g.requestDecision(a)
+				a.Thinking = true
+				go g.requestDecision(i, *a)
 			}
 		}
 	}
@@ -234,6 +262,18 @@ func (g *VillageGame) drawResidentCard(dst *ebiten.Image, a *Resident) {
 	g.drawText(dst, "HOME", screenWidth-310, 250, 11, color.RGBA{158, 190, 178, 255})
 	g.drawText(dst, a.Home, screenWidth-310, 271, 12, color.White)
 	g.drawText(dst, "AI decisions: "+decisionMode(), screenWidth-310, 296, 11, color.RGBA{220, 220, 195, 255})
+}
+
+func destinationPoint(destination string) (Point, bool) {
+	targets := map[string]Point{
+		"AGS Commons":     {550, 335},
+		"Research House":  {190, 260},
+		"Workshop":        {900, 275},
+		"Creative Studio": {915, 555},
+		"Garden Cafe":     {200, 570},
+	}
+	point, ok := targets[destination]
+	return point, ok
 }
 
 func decisionMode() string {
