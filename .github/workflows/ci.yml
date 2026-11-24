@@ -22,14 +22,3 @@ jobs:
         run: go test ./...
       - name: Vet
         run: go vet ./...
-      - name: Build Windows executable
-        env:
-          GOOS: windows
-          GOARCH: amd64
-        run: go build -trimpath -ldflags="-s -w" -o ai-village.exe .
-      - name: Upload executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: ai-village-windows-amd64
-          path: ai-village.exe
-          if-no-files-found: error
