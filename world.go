@@ -48,15 +48,15 @@ type Building struct {
 }
 
 type VillageGame struct {
-	residents   []*Resident
-	buildings   []Building
-	paused      bool
-	selected    int
-	clock       float64
-	lastTick    time.Time
-	face        *text.GoTextFace
-	notice      string
-	noticeUntil time.Time
+	residents       []*Resident
+	buildings       []Building
+	paused          bool
+	selected        int
+	clock           float64
+	lastTick        time.Time
+	face            *text.GoTextFace
+	notice          string
+	noticeUntil     time.Time
 	rng             *rand.Rand
 	decisionResults chan AgentDecision
 }
@@ -64,8 +64,8 @@ type VillageGame struct {
 func NewVillageGame() *VillageGame {
 	src, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	g := &VillageGame{
-		selected: -1,
-		lastTick: time.Now(),
+		selected:        -1,
+		lastTick:        time.Now(),
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		decisionResults: make(chan AgentDecision, 16),
 		buildings: []Building{
