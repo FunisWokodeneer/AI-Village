@@ -18,6 +18,12 @@ The first world-engine foundation includes:
 
 The current AI decision loop is intentionally small: residents periodically request one activity and destination. It is a foundation, not a claim that full delegation, persistent memory, or autonomous project execution is already implemented.
 
+## Windows desktop build
+
+The **Build Windows App** workflow produces a native `AI-Village-windows-x64.exe` with no console window. Download it from the Artifacts section of a successful [Build Windows App run](https://github.com/FunisWokodeneer/AI-Village/actions/workflows/build-windows-exe.yml), then double-click it. The village opens in demo mode without requiring credentials.
+
+To enable model-driven resident decisions in this prototype, set `AI_VILLAGE_API_KEY` (or `NIM_API_KEY`) and optionally `AI_VILLAGE_ENDPOINT` and `AI_VILLAGE_MODEL` in the Windows environment before launching. A first-run settings screen and secure in-app credential storage are planned; they are not implemented yet.
+
 ## Run
 
 Install Go 1.23 or newer, then:
