@@ -25,9 +25,11 @@ type decisionResponse struct {
 	} `json:"choices"`
 }
 
-func (g *VillageGame) requestDecision(a *Resident) {
-	a.Thinking = true
-	defer func() { a.Thinking = false }()
+func (g *VillageGame) requestDecision(index int, a Resident) {
+	decision := AgentDecision{ResidentIndex: index}
+	defer func() {
+		g.decisionResults <- decision
+	}
 
 	key := os.Getenv("AI_VILLAGE_API_KEY")
 	if key == "" {
@@ -98,17 +100,6 @@ func (g *VillageGame) requestDecision(a *Resident) {
 		return
 	}
 
-	targets := map[string]Point{
-		"AGS Commons":     {550, 335},
-		"Research House":  {190, 260},
-		"Workshop":        {900, 275},
-		"Creative Studio": {915, 555},
-		"Garden Cafe":     {200, 570},
-	}
-	if p, ok := targets[choice.Destination]; ok {
-		a.Target = p
-	}
-	if choice.Activity != "" {
-		a.CurrentAction = choice.Activity
-	}
+	decision.Destination = choice.Destination
+	decision.Activity = choice.Activity
 }
