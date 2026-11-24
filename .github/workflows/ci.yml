@@ -16,9 +16,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Show formatting diff
-        run: gofmt -d world.go
+      - name: Resolve and verify dependencies
+        run: go mod tidy
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
       - name: Test
         run: go test ./...
       - name: Vet
         run: go vet ./...
+      - name: Print dependency checksums for bootstrap
+        run: cat go.sum
