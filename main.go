@@ -1,3 +1,5 @@
+//go:build !windows
+
 package main
 
 import (
@@ -16,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	if strings.TrimSpace(*goal) == "" {
-		fmt.Fprintln(os.Stderr, "usage: ai-village.exe -goal \"Build a small reporting tool\"")
+		fmt.Fprintln(os.Stderr, "usage: ai-village -goal \"Build a small reporting tool\"")
 		os.Exit(2)
 	}
 
