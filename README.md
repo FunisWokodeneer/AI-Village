@@ -6,7 +6,7 @@ Windows interface and does not open a terminal window.
 
 ## Windows app
 
-1. Download \`AI-Village-windows-x64.exe\` from the latest successful
+1. Download `AI-Village-windows-x64.exe` from the latest successful
    **Build Windows App** GitHub Actions run (or from a GitHub Release).
 2. Double-click the executable.
 3. Paste your NVIDIA API key into the password field.
@@ -19,8 +19,8 @@ The API key is used only in memory for that run and is not saved by the app.
 You will need to enter it again the next time you launch AI Village.
 
 The model and endpoint can be changed in the app. Defaults are
-\`meta/llama-3.1-70b-instruct\` and
-\`https://integrate.api.nvidia.com/v1/chat/completions\`.
+`meta/llama-3.1-70b-instruct` and
+`https://integrate.api.nvidia.com/v1/chat/completions`.
 
 ## Agent specialties
 
@@ -38,12 +38,12 @@ The Windows desktop app is built with Go and the Walk Windows GUI toolkit.
 A Windows build requires Go 1.21 or newer and embeds the application manifest
 so the executable is self-contained.
 
-\`\`\`powershell
+```powershell
 go mod tidy
 go install github.com/akavel/rsrc@latest
 rsrc -manifest app.manifest -o rsrc_windows_amd64.syso
 go build -trimpath -ldflags="-s -w -H=windowsgui -linkmode=internal" -o AI-Village.exe .
-\`\`\`
+```
 
-On non-Windows systems, \`go run . -goal "Your goal"\` remains available as a
+On non-Windows systems, `go run . -goal "Your goal"` remains available as a
 command-line version for development. The Windows executable is the GUI app.
