@@ -24,6 +24,28 @@ The current AI decision loop is intentionally small: residents periodically requ
 - Successful build runs upload `AI-Village-windows-x64.exe` as a temporary Actions artifact (kept for 30 days). These builds do **not** create or update GitHub Releases.
 - To prepare a public release, open **Actions → Draft Windows Release → Run workflow**, enter a version tag such as `v0.1.0`, and run it. Alternatively, push a `v*` tag.
 - The release workflow builds and tests the app, then creates a **draft GitHub Release** with the Windows executable attached. Review it and publish it manually when you're ready.
+- Publishing a GitHub Release triggers the **Complete Next Release items** workflow. See [Project release automation](#project-release-automation) for its required one-time setup and approval gate.
+
+## Project release automation
+
+When a GitHub Release is published, the workflow scans the **AI Village Issue Tracker & Developments** GitHub Project (#3) and changes items whose **Status** is exactly **Next Release** to **Done**. Other statuses and other projects are not changed. The workflow paginates through the Project items.
+
+### One-time maintainer setup
+
+The workflow deliberately uses a protected GitHub Environment so a release cannot immediately use the Project-write token without an independent approval.
+
+1. In the repository, open **Settings → Environments** and create an environment named `project-item-updates`.
+2. In that environment, configure **Required reviewers** and enable **Prevent self-review** if GitHub offers that setting for the repository. Choose a trusted reviewer who should approve Project-board updates after a release.
+3. Create a fine-grained personal access token from GitHub **Settings → Developer settings → Personal access tokens → Fine-grained tokens**. Set the resource owner to the Project owner, grant access to the `AI-Village` repository, and grant **Projects: Read and write** permission. Keep the token private.
+4. In **Settings → Environments → project-item-updates → Environment secrets**, add a secret named `AI_VILLAGE_PROJECTS_TOKEN` with that token as its value. Do not add it as a plain repository secret, commit it, or paste it into an issue or chat.
+5. Confirm the Project owner, Project number (#3), Status field, and the `Next Release` and `Done` options still match the workflow configuration.
+
+### How it runs
+
+- **Published release:** waits for approval of the `project-item-updates` environment, then updates all matching items.
+- **Manual test:** open **Actions → Complete Next Release items → Run workflow**. The `dry_run` input defaults to `true`; this scans and reports matching items without changing them. Only turn it off when an authorized reviewer intends to perform the actual update.
+- The same protected environment is required for manual runs. The token is exposed only to the job after the environment's protection rules are satisfied.
+- If the token, Project, Status field, or required options are missing, the run fails with an actionable error. The workflow never prints the token.
 
 ## Windows desktop build
 
