@@ -50,7 +50,7 @@ jobs:
           Get-Item "dist/AI-Village-windows-x64.exe" | Format-List Name,Length
 
       - name: Upload Windows executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AI-Village-windows-x64
           path: dist/AI-Village-windows-x64.exe
