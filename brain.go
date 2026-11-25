@@ -26,7 +26,7 @@ type decisionResponse struct {
 }
 
 func (g *VillageGame) requestDecision(index int, a Resident) {
-	decision := AgentDecision{ResidentIndex: index}
+	decision := AgentDecision{ResidentIndex: index, Source: "demo simulation"}
 	defer func() {
 		g.decisionResults <- decision
 	}()
@@ -99,7 +99,15 @@ func (g *VillageGame) requestDecision(index int, a Resident) {
 	if json.Unmarshal([]byte(strings.TrimSpace(content)), &choice) != nil {
 		return
 	}
+	choice.Activity = strings.TrimSpace(choice.Activity)
+	if choice.Activity == "" {
+		return
+	}
+	if _, ok := destinationPoint(choice.Destination); !ok {
+		return
+	}
 
 	decision.Destination = choice.Destination
 	decision.Activity = choice.Activity
+	decision.Source = "model response"
 }

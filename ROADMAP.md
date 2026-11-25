@@ -23,7 +23,9 @@ This roadmap distinguishes implemented foundations from planned capabilities.
 
 ## Milestone 1 — Real organization
 
-- [ ] Organization model: owner, Chief of Staff, directors, teams, workers.
+- [x] Initial organization model for departments, agents, projects, tasks, approvals, and activity.
+- [x] Versioned local organization persistence and approval decision records.
+- [ ] Organization model: owner, Chief of Staff, directors, teams, workers, with validated relationships.
 - [ ] Agent profiles with editable role instructions, capabilities, and boundaries.
 - [ ] Department and project spaces represented physically in the village.
 - [ ] Task lifecycle: proposed, approved, queued, running, blocked, review, completed.
@@ -41,10 +43,11 @@ This roadmap distinguishes implemented foundations from planned capabilities.
 
 ## Milestone 3 — Work engine
 
-- [ ] Permissioned tool registry.
-- [ ] Project workspaces and artifact storage.
+- [x] Fail-closed policy evaluator and policy-gated scoped workspace file API.
+- [ ] Permissioned tool registry and owner-facing workspace/approval interface.
+- [ ] Project workspaces and artifact storage integrated with the UI and task lifecycle.
 - [ ] Research, coding, file, and browser tool integrations.
-- [ ] Sandboxed execution and explicit approval for external side effects.
+- [ ] Isolated, allowlisted build/test execution and explicit approval for external side effects.
 - [ ] Review/verification steps before reporting completion.
 - [ ] Reproducible task logs and exportable deliverables.
 
@@ -68,4 +71,4 @@ This roadmap distinguishes implemented foundations from planned capabilities.
 
 ## Current scope
 
-The current branch starts Milestone 0. The prototype does not yet include persistent memory, true task delegation, tool execution, or a complete organization hierarchy. Those are explicit future milestones rather than simulated claims.
+The current branch includes an initial organization/policy and workspace-file foundation. The GUI is not yet connected to those APIs; model-driven task planning, delegation, sandboxed command execution, and verified project completion remain future milestones rather than simulated claims.
