@@ -18,6 +18,13 @@ The first world-engine foundation includes:
 
 The current AI decision loop is intentionally small: residents periodically request one activity and destination. It is a foundation, not a claim that full delegation, persistent memory, or autonomous project execution is already implemented.
 
+## Builds and releases
+
+- Every push to `main` (and the Windows GUI feature branch) runs the **Build Windows App** workflow. Pull requests targeting `main` also build and test.
+- Successful build runs upload `AI-Village-windows-x64.exe` as a temporary Actions artifact (kept for 30 days). These builds do **not** create or update GitHub Releases.
+- To prepare a public release, open **Actions → Draft Windows Release → Run workflow**, enter a version tag such as `v0.1.0`, and run it. Alternatively, push a `v*` tag.
+- The release workflow builds and tests the app, then creates a **draft GitHub Release** with the Windows executable attached. Review it and publish it manually when you're ready.
+
 ## Windows desktop build
 
 The **Build Windows App** workflow produces a native `AI-Village-windows-x64.exe` with no console window. Download it from the Artifacts section of a successful [Build Windows App run](https://github.com/FunisWokodeneer/AI-Village/actions/workflows/build-windows-exe.yml), then double-click it. The village opens in demo mode without requiring credentials.
