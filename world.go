@@ -28,6 +28,7 @@ type Point struct {
 type Resident struct {
 	Name, Role, Home, Workplace string
 	Personality, CurrentAction  string
+	DecisionSource              string
 	Position, Target            Point
 	Color                       color.RGBA
 	Speed                       float64
@@ -39,6 +40,7 @@ type AgentDecision struct {
 	ResidentIndex int
 	Activity      string
 	Destination   string
+	Source        string
 }
 
 type Building struct {
@@ -48,17 +50,20 @@ type Building struct {
 }
 
 type VillageGame struct {
-	residents       []*Resident
-	buildings       []Building
-	paused          bool
-	selected        int
-	clock           float64
-	lastTick        time.Time
-	face            *text.GoTextFace
-	notice          string
-	noticeUntil     time.Time
-	rng             *rand.Rand
-	decisionResults chan AgentDecision
+	residents             []*Resident
+	buildings             []Building
+	organization          *OrganizationStore
+	paused                bool
+	selected              int
+	clock                 float64
+	lastTick              time.Time
+	face                  *text.GoTextFace
+	notice                string
+	noticeUntil           time.Time
+	organizationSummary   string
+	organizationSummaryAt time.Time
+	rng                   *rand.Rand
+	decisionResults       chan AgentDecision
 }
 
 func NewVillageGame() *VillageGame {
@@ -86,10 +91,13 @@ func NewVillageGame() *VillageGame {
 		{Name: "Nova", Role: "Creative Director", Home: "Creative Studio", Workplace: "Creative Studio", Personality: "imaginative, expressive, observant", CurrentAction: "Sketching a new idea", Position: Point{750, 490}, Target: Point{750, 490}, Color: color.RGBA{183, 145, 220, 255}, Speed: 45},
 		{Name: "Pip", Role: "Community & Operations", Home: "Garden Cafe", Workplace: "Garden Cafe", Personality: "friendly, energetic, helpful", CurrentAction: "Taking a coffee break", Position: Point{310, 500}, Target: Point{310, 500}, Color: color.RGBA{129, 190, 128, 255}, Speed: 52},
 	}
+	for _, resident := range g.residents {
+		resident.DecisionSource = "demo simulation"
+	}
 	if os.Getenv("AI_VILLAGE_API_KEY") != "" || os.Getenv("NIM_API_KEY") != "" {
-		g.notice = "AI connection configured — residents will make model-driven decisions"
+		g.notice = "Provider configured — responses are unverified; project execution is unavailable"
 	} else {
-		g.notice = "Demo mode — add AI_VILLAGE_API_KEY to enable live agent decisions"
+		g.notice = "DEMO MODE — scripted activity only; project execution is unavailable"
 	}
 	g.noticeUntil = time.Now().Add(12 * time.Second)
 	return g
@@ -102,6 +110,22 @@ func (g *VillageGame) Update() error {
 		dt = 0.1
 	}
 	g.lastTick = now
+	if !now.Before(g.organizationSummaryAt) {
+		g.organizationSummaryAt = now.Add(time.Second)
+		if g.organization == nil {
+			g.organizationSummary = "ORG STORAGE OFFLINE"
+		} else {
+			organization := g.organization.Snapshot()
+			pending := 0
+			for _, approval := range organization.Approvals {
+				if approval.Status == ApprovalPending {
+					pending++
+				}
+			}
+			g.organizationSummary = fmt.Sprintf("ORG  %d TASKS  %d PENDING  %d EVENTS",
+				len(organization.Tasks), pending, len(organization.Activity))
+		}
+	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		g.paused = !g.paused
@@ -116,6 +140,9 @@ func (g *VillageGame) Update() error {
 			if decision.ResidentIndex >= 0 && decision.ResidentIndex < len(g.residents) {
 				a := g.residents[decision.ResidentIndex]
 				a.Thinking = false
+				if decision.Source != "" {
+					a.DecisionSource = decision.Source
+				}
 				if decision.Activity != "" {
 					a.CurrentAction = decision.Activity
 				}
@@ -177,6 +204,7 @@ func (g *VillageGame) chooseAmbientDestination(a *Resident) {
 		"thinking through a task",
 	}
 	a.CurrentAction = actions[g.rng.Intn(len(actions))]
+	a.DecisionSource = "demo simulation"
 }
 
 func (g *VillageGame) Draw(screen *ebiten.Image) {
@@ -246,6 +274,7 @@ func (g *VillageGame) drawHUD(dst *ebiten.Image) {
 	vector.DrawFilledRect(dst, 0, 0, screenWidth, 48, color.RGBA{27, 39, 48, 235}, false)
 	g.drawText(dst, "AGS  /  AI VILLAGE", 18, 29, 19, color.RGBA{245, 239, 218, 255})
 	g.drawText(dst, "A living workspace for your AI team", 245, 28, 13, color.RGBA{185, 204, 197, 255})
+	g.drawText(dst, g.organizationSummary, 600, 28, 11, color.RGBA{220, 220, 195, 255})
 	g.drawText(dst, fmt.Sprintf("DAY 01   %02d:%02d", int(g.clock/60)%24, int(g.clock)%60), 850, 28, 13, color.White)
 	g.drawText(dst, fmt.Sprintf("%d RESIDENTS", len(g.residents)), 1000, 28, 12, color.RGBA{224, 224, 205, 255})
 	vector.DrawFilledRect(dst, 0, screenHeight-38, screenWidth, 38, color.RGBA{27, 39, 48, 235}, false)
@@ -253,7 +282,7 @@ func (g *VillageGame) drawHUD(dst *ebiten.Image) {
 }
 
 func (g *VillageGame) drawResidentCard(dst *ebiten.Image, a *Resident) {
-	vector.DrawFilledRect(dst, screenWidth-330, 65, 310, 250, color.RGBA{27, 39, 48, 240}, false)
+	vector.DrawFilledRect(dst, screenWidth-330, 65, 310, 275, color.RGBA{27, 39, 48, 240}, false)
 	g.drawText(dst, a.Name+"  /  "+a.Role, screenWidth-310, 95, 16, a.Color)
 	g.drawText(dst, "PERSONALITY", screenWidth-310, 130, 11, color.RGBA{158, 190, 178, 255})
 	g.drawText(dst, a.Personality, screenWidth-310, 151, 12, color.White)
@@ -261,7 +290,12 @@ func (g *VillageGame) drawResidentCard(dst *ebiten.Image, a *Resident) {
 	g.drawText(dst, a.CurrentAction, screenWidth-310, 213, 12, color.White)
 	g.drawText(dst, "HOME", screenWidth-310, 250, 11, color.RGBA{158, 190, 178, 255})
 	g.drawText(dst, a.Home, screenWidth-310, 271, 12, color.White)
-	g.drawText(dst, "AI decisions: "+decisionMode(), screenWidth-310, 296, 11, color.RGBA{220, 220, 195, 255})
+	source := a.DecisionSource
+	if a.Thinking {
+		source = "model response pending"
+	}
+	g.drawText(dst, "Last activity source: "+source, screenWidth-310, 296, 11, color.RGBA{220, 220, 195, 255})
+	g.drawText(dst, "Project execution: unavailable", screenWidth-310, 319, 11, color.RGBA{255, 207, 165, 255})
 }
 
 func destinationPoint(destination string) (Point, bool) {
@@ -274,13 +308,6 @@ func destinationPoint(destination string) (Point, bool) {
 	}
 	point, ok := targets[destination]
 	return point, ok
-}
-
-func decisionMode() string {
-	if os.Getenv("AI_VILLAGE_API_KEY") != "" || os.Getenv("NIM_API_KEY") != "" {
-		return "configured"
-	}
-	return "demo behavior"
 }
 
 func (g *VillageGame) drawText(dst *ebiten.Image, s string, x, y, size float64, c color.Color) {

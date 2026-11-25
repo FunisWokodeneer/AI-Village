@@ -18,6 +18,8 @@ The first world-engine foundation includes:
 
 The current AI decision loop is intentionally small: residents periodically request one activity and destination. It is a foundation, not a claim that full delegation, persistent memory, or autonomous project execution is already implemented.
 
+The organization foundation now has a versioned local JSON store, an approval-request queue, an activity history, and scoped file operations for explicitly registered workspaces. These APIs are not yet connected to model planning or an in-app approval/workspace interface. The renderer identifies simulated activity and distinguishes a successful model response from a configured-but-unverified provider. Project command execution, tests, and task completion are not implemented; no agent-generated commands are run on the host.
+
 ## Builds and releases
 
 - Every push to `main` (and the Windows GUI feature branch) runs the **Build Windows App** workflow. Pull requests targeting `main` also build and test.
