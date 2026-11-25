@@ -23,7 +23,9 @@ This roadmap distinguishes implemented foundations from planned capabilities.
 
 ## Milestone 1 — Real organization
 
-- [ ] Organization model: owner, Chief of Staff, directors, teams, workers.
+- [x] Initial organization domain model for departments, agent profiles, projects, tasks, approvals, and activity events.
+- [x] Fail-closed policy classification for scoped workspace actions and approval-required actions.
+- [ ] Organization model: owner, Chief of Staff, directors, teams, workers, with persistence and validation.
 - [ ] Agent profiles with editable role instructions, capabilities, and boundaries.
 - [ ] Department and project spaces represented physically in the village.
 - [ ] Task lifecycle: proposed, approved, queued, running, blocked, review, completed.
