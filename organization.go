@@ -45,14 +45,14 @@ type Project struct {
 type WorkTaskStatus string
 
 const (
-	TaskProposed   WorkTaskStatus = "proposed"
-	TaskQueued     WorkTaskStatus = "queued"
-	TaskRunning    WorkTaskStatus = "running"
-	TaskBlocked    WorkTaskStatus = "blocked"
+	TaskProposed    WorkTaskStatus = "proposed"
+	TaskQueued      WorkTaskStatus = "queued"
+	TaskRunning     WorkTaskStatus = "running"
+	TaskBlocked     WorkTaskStatus = "blocked"
 	TaskNeedsReview WorkTaskStatus = "needs_review"
-	TaskCompleted  WorkTaskStatus = "completed"
-	TaskFailed     WorkTaskStatus = "failed"
-	TaskCancelled  WorkTaskStatus = "cancelled"
+	TaskCompleted   WorkTaskStatus = "completed"
+	TaskFailed      WorkTaskStatus = "failed"
+	TaskCancelled   WorkTaskStatus = "cancelled"
 )
 
 type WorkTask struct {
@@ -129,17 +129,17 @@ const (
 type PolicyDecision string
 
 const (
-	PolicyAllow          PolicyDecision = "allow"
-	PolicyNeedsApproval  PolicyDecision = "needs_approval"
-	PolicyDeny           PolicyDecision = "deny"
+	PolicyAllow         PolicyDecision = "allow"
+	PolicyNeedsApproval PolicyDecision = "needs_approval"
+	PolicyDeny          PolicyDecision = "deny"
 )
 
 type PolicyContext struct {
-	WorkspaceID          string
-	TargetWorkspaceID    string
-	WorkspaceApproved    bool
-	CommandAllowlisted   bool
-	ExplicitlyApproved   bool
+	WorkspaceID        string
+	TargetWorkspaceID  string
+	WorkspaceApproved  bool
+	CommandAllowlisted bool
+	ExplicitlyApproved bool
 }
 
 type PolicyResult struct {
