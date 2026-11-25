@@ -93,6 +93,31 @@ func TestWorkspaceFilesRejectSymlinkEscape(t *testing.T) {
 	}
 }
 
+func TestWorkspaceFilesRejectsReplacedWorkspaceRoot(t *testing.T) {
+	root, outside := t.TempDir(), t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	store := newTestOrganizationStore(t)
+	if err := store.RegisterWorkspace("project-a", root); err != nil {
+		t.Fatal(err)
+	}
+	originalRoot := root + "-original"
+	if err := os.Rename(root, originalRoot); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, root); err != nil {
+		t.Skipf("directory symlinks are unavailable: %v", err)
+	}
+	files, err := NewWorkspaceFiles(store, "project-a", "agent-a", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := files.ReadFile("secret.txt"); err == nil {
+		t.Fatal("read through a replacement workspace-root symlink succeeded")
+	}
+}
+
 func TestWorkspaceFilesNeverRecordFileContents(t *testing.T) {
 	root := t.TempDir()
 	store := newTestOrganizationStore(t)

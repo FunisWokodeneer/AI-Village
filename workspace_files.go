@@ -188,11 +188,15 @@ func resolveWorkspacePath(root, name string) (string, error) {
 	if name == "" || strings.ContainsRune(name, '\x00') || filepath.IsAbs(name) {
 		return "", errors.New("workspace path must be a non-empty relative path")
 	}
-	root, err := filepath.EvalSymlinks(root)
+	registeredRoot := filepath.Clean(root)
+	resolvedRoot, err := filepath.EvalSymlinks(registeredRoot)
 	if err != nil {
 		return "", errors.New("registered workspace is unavailable")
 	}
-	root = filepath.Clean(root)
+	if !sameWorkspacePath(registeredRoot, filepath.Clean(resolvedRoot)) {
+		return "", errors.New("registered workspace root changed")
+	}
+	root = registeredRoot
 	cleanName := filepath.Clean(filepath.FromSlash(name))
 	if cleanName == "." || cleanName == ".." || strings.HasPrefix(cleanName, ".."+string(filepath.Separator)) {
 		return "", errors.New("workspace path escapes its root")
@@ -229,4 +233,11 @@ func pathWithin(root, target string) bool {
 		return !strings.HasPrefix(strings.ToLower(relative), "..\\")
 	}
 	return true
+}
+
+func sameWorkspacePath(left, right string) bool {
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
 }
