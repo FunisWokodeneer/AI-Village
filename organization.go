@@ -3,16 +3,16 @@ package main
 import "time"
 
 // Organization is the persisted domain model for the AI Village workforce.
-// It deliberately contains no executable capabilities; tools must enforce
-// permissions through EvaluatePolicy before performing any side effect.
+// Tools must enforce permissions through EvaluatePolicy before any side effect.
 type Organization struct {
-	Version     int               `json:"version"`
-	Departments []Department      `json:"departments"`
-	Agents      []AgentProfile    `json:"agents"`
-	Projects    []Project         `json:"projects"`
-	Tasks       []WorkTask        `json:"tasks"`
-	Approvals   []ApprovalRequest `json:"approvals"`
-	Activity    []ActivityEvent   `json:"activity"`
+	Version     int                `json:"version"`
+	Departments []Department       `json:"departments"`
+	Agents      []AgentProfile     `json:"agents"`
+	Projects    []Project          `json:"projects"`
+	Workspaces  []ProjectWorkspace `json:"workspaces"`
+	Tasks       []WorkTask         `json:"tasks"`
+	Approvals   []ApprovalRequest  `json:"approvals"`
+	Activity    []ActivityEvent    `json:"activity"`
 }
 
 type Department struct {
@@ -40,6 +40,12 @@ type Project struct {
 	Description string    `json:"description,omitempty"`
 	WorkspaceID string    `json:"workspace_id"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type ProjectWorkspace struct {
+	ID       string `json:"id"`
+	Path     string `json:"path"`
+	Approved bool   `json:"approved"`
 }
 
 type WorkTaskStatus string
@@ -148,9 +154,8 @@ type PolicyResult struct {
 }
 
 // EvaluatePolicy is intentionally fail-closed. Routine project work is
-// automatic only inside an explicitly approved workspace and only when the
-// command is on the application's allowlist. Consequential actions wait for
-// an explicit owner decision; unknown actions are denied.
+// automatic only inside an explicitly approved workspace. Consequential
+// actions wait for explicit owner approval; unknown actions are denied.
 func EvaluatePolicy(action PolicyAction, ctx PolicyContext) PolicyResult {
 	if ctx.ExplicitlyApproved {
 		switch action {
@@ -169,7 +174,6 @@ func EvaluatePolicy(action PolicyAction, ctx PolicyContext) PolicyResult {
 			return PolicyResult{Decision: PolicyNeedsApproval, Reason: "The target is not inside an approved workspace"}
 		}
 		return PolicyResult{Decision: PolicyAllow, Reason: "Action is scoped to an approved workspace"}
-
 	case ActionRunTests, ActionRunBuild:
 		if !workspaceIsScoped(ctx) {
 			return PolicyResult{Decision: PolicyNeedsApproval, Reason: "The target is not inside an approved workspace"}
@@ -178,12 +182,10 @@ func EvaluatePolicy(action PolicyAction, ctx PolicyContext) PolicyResult {
 			return PolicyResult{Decision: PolicyNeedsApproval, Reason: "The requested command is not on the approved command allowlist"}
 		}
 		return PolicyResult{Decision: PolicyAllow, Reason: "Allowlisted build or test in an approved workspace"}
-
 	case ActionInstallDependency, ActionPublishRelease, ActionDeploy,
 		ActionExternalMessage, ActionAccessOutside, ActionDestructiveChange,
 		ActionChangePolicy, ActionPaidService, ActionModifyApplication:
 		return PolicyResult{Decision: PolicyNeedsApproval, Reason: "This action requires explicit owner approval"}
-
 	default:
 		return PolicyResult{Decision: PolicyDeny, Reason: "Unknown or unsupported action"}
 	}
