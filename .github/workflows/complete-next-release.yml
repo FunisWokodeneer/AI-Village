@@ -1,0 +1,73 @@
+name: Complete Next Release items
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: complete-next-release
+  cancel-in-progress: false
+
+jobs:
+  complete-project-items:
+    name: Mark Next Release items as Done
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update AI Village project
+        env:
+          GH_TOKEN: ${{ secrets.AI_VILLAGE_PROJECTS_TOKEN }}
+          PROJECT_OWNER: FunisWokodeneer
+          PROJECT_NUMBER: "3"
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::Missing AI_VILLAGE_PROJECTS_TOKEN repository secret."
+            exit 1
+          fi
+
+          project_json="$(gh api graphql \
+            -f query='query($login: String!, $number: Int!) { user(login: $login) { projectV2(number: $number) { id fields(first: 50) { nodes { ... on ProjectV2SingleSelectField { id name options { id name } } } } } } }' \
+            -F login="$PROJECT_OWNER" \
+            -F number="$PROJECT_NUMBER")"
+
+          project_id="$(jq -r '.data.user.projectV2.id // empty' <<<"$project_json")"
+          status_field_id="$(jq -r '.data.user.projectV2.fields.nodes[] | select(.name == "Status") | .id' <<<"$project_json")"
+          done_option_id="$(jq -r '.data.user.projectV2.fields.nodes[] | select(.name == "Status") | .options[] | select(.name == "Done") | .id' <<<"$project_json")"
+
+          if [[ -z "$project_id" || -z "$status_field_id" || -z "$done_option_id" ]]; then
+            echo "::error::Could not find project #$PROJECT_NUMBER, its Status field, or the Done option."
+            exit 1
+          fi
+
+          cursor=""
+          updated=0
+          while :; do
+            page="$(gh api graphql \
+              -f query='query($project: ID!, $after: String) { node(id: $project) { ... on ProjectV2 { items(first: 100, after: $after) { nodes { id fieldValues(first: 30) { nodes { ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2SingleSelectField { name } } } } } } pageInfo { hasNextPage endCursor } } } }' \
+              -F project="$project_id" \
+              -F after="$cursor")"
+
+            while IFS= read -r item_id; do
+              [[ -z "$item_id" ]] && continue
+              gh api graphql \
+                -f query='mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) { updateProjectV2ItemFieldValue(input: {projectId: $project, itemId: $item, fieldId: $field, value: {singleSelectOptionId: $option}}) { projectV2Item { id } } }' \
+                -F project="$project_id" \
+                -F item="$item_id" \
+                -F field="$status_field_id" \
+                -F option="$done_option_id" >/dev/null
+              updated=$((updated + 1))
+              echo "Marked project item $item_id as Done."
+            done < <(jq -r --arg field "Status" '.data.node.items.nodes[] | select(any(.fieldValues.nodes[]?; .field.name == $field and .name == "Next Release")) | .id' <<<"$page")
+
+            has_next="$(jq -r '.data.node.items.pageInfo.hasNextPage' <<<"$page")"
+            [[ "$has_next" == "true" ]] || break
+            cursor="$(jq -r '.data.node.items.pageInfo.endCursor' <<<"$page")"
+          done
+
+          echo "Finished. Updated $updated project item(s) from Next Release to Done."
