@@ -107,7 +107,7 @@ jobs:
                 -F field="$status_field_id" \
                 -F option="$done_option_id")"
 
-              if ! jq -e '(.errors // []) | length == 0 and (.data.updateProjectV2ItemFieldValue.projectV2Item.id != null)' <<<"$mutation" >/dev/null; then
+              if ! jq -e '((.errors // []) | length == 0) and (.data.updateProjectV2ItemFieldValue.projectV2Item.id != null)' <<<"$mutation" >/dev/null; then
                 echo "::error::Failed to update project item $item_id. See the GraphQL response for details (no token is printed)."
                 exit 1
               fi
