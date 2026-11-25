@@ -10,6 +10,13 @@ func TestNewVillageGameCreatesInitialResidents(t *testing.T) {
 	if game.residents[0].Name != "Aster" {
 		t.Fatalf("first resident = %q, want Aster", game.residents[0].Name)
 	}
+	if game.residents[0].DecisionSource != "demo simulation" {
+		t.Fatalf("initial decision source = %q, want simulated activity", game.residents[0].DecisionSource)
+	}
+	game.chooseAmbientDestination(game.residents[0])
+	if game.residents[0].DecisionSource != "demo simulation" {
+		t.Fatalf("ambient activity source = %q, want simulated activity", game.residents[0].DecisionSource)
+	}
 }
 
 func TestDestinationPointOnlyAcceptsKnownBuildings(t *testing.T) {

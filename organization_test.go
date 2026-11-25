@@ -102,3 +102,19 @@ func TestEvaluatePolicyDeniesUnknownActions(t *testing.T) {
 		t.Fatalf("decision = %q, want %q", got.Decision, PolicyDeny)
 	}
 }
+
+func TestEvaluatePolicyRequiresApprovalForUnscopedOrConsequentialActions(t *testing.T) {
+	for _, action := range []PolicyAction{
+		ActionReadWorkspace, ActionWriteWorkspace, ActionCreateProjectFile,
+		ActionCreateProjectFolder, ActionRunTests, ActionRunBuild,
+		ActionInstallDependency, ActionPublishRelease, ActionDeploy,
+		ActionExternalMessage, ActionAccessOutside, ActionDestructiveChange,
+		ActionChangePolicy, ActionPaidService, ActionModifyApplication,
+	} {
+		t.Run(string(action), func(t *testing.T) {
+			if got := EvaluatePolicy(action, PolicyContext{}); got.Decision != PolicyNeedsApproval {
+				t.Fatalf("decision = %q, want %q", got.Decision, PolicyNeedsApproval)
+			}
+		})
+	}
+}
