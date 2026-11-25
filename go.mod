@@ -1,10 +1,10 @@
 module github.com/FunisWokodeneer/AI-Village
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
-	golang.org/x/image v0.41.0
+	golang.org/x/image v0.48.0
 )
 
 require (
@@ -13,7 +13,7 @@ require (
 	github.com/ebitengine/purego v0.8.0 // indirect
 	github.com/go-text/typesetting v0.2.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 )
