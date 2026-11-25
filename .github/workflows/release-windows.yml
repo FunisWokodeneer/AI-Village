@@ -1,0 +1,65 @@
+name: Draft Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Version tag for this draft release (for example v0.1.0)"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and draft Windows release
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve dependencies
+        run: go mod tidy
+
+      - name: Test
+        run: go test ./...
+
+      - name: Install manifest resource compiler
+        run: |
+          go install github.com/akavel/rsrc@latest
+          $env:PATH = "$(go env GOPATH)\bin;$env:PATH"
+          rsrc -manifest app.manifest -o rsrc_windows_amd64.syso
+
+      - name: Build GUI executable
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          go build -trimpath -ldflags="-s -w -H=windowsgui -linkmode=internal" -o dist/AI-Village-windows-x64.exe .
+
+      - name: Verify executable exists
+        run: |
+          if (-not (Test-Path "dist/AI-Village-windows-x64.exe")) {
+            throw "The Windows executable was not created."
+          }
+          Get-Item "dist/AI-Village-windows-x64.exe" | Format-List Name,Length
+
+      - name: Create draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: AI Village ${{ inputs.tag_name || github.ref_name }}
+          draft: true
+          prerelease: false
+          files: dist/AI-Village-windows-x64.exe
+          generate_release_notes: true
